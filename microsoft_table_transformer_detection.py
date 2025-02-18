@@ -5,16 +5,49 @@ from huggingface_hub import hf_hub_download
 from torchvision import transforms
 import torch
 
-# Initialize the image processor
-image_processor = AutoImageProcessor.from_pretrained("microsoft/table-transformer-detection")
-model = TableTransformerForObjectDetection.from_pretrained("microsoft/table-transformer-detection")
+# Initialize the model with a specific configuration and local weights
+weights_path = "C:/Users/yasar/OneDrive/Skrivebord/Uni/Master Thesis/Master project/pubtables1m_detection_detr_r18.pth"
+model_path = "C:/Users/yasar/OneDrive/Skrivebord/Uni/Master Thesis/Master project" # Base path for model config
+
+try:
+    # First get the config and create model instance
+    image_processor = AutoImageProcessor.from_pretrained("microsoft/table-transformer-detection")
+    model = TableTransformerForObjectDetection.from_pretrained("microsoft/table-transformer-detection")
+    
+    # Add debugging code here
+    print("Before loading custom weights:")
+    for name, param in model.named_parameters():
+        print(f"{name}: {param.mean().item()}")
+
+    # Load the local weights
+    state_dict = torch.load(weights_path, map_location='cpu')
+
+    # Ensure the keys match the model
+    missing_keys, unexpected_keys = model.load_state_dict(state_dict, strict=False)
+    print(f"Missing keys: {missing_keys}")
+    print(f"Unexpected keys: {unexpected_keys}")
+
+    print("After loading custom weights:")
+    for name, param in model.named_parameters():
+        print(f"{name}: {param.mean().item()}")
+    
+    print("Successfully loaded local weights")
+    
+    # Save the complete model for future use
+    model.save_pretrained(model_path)
+    image_processor.save_pretrained(model_path)
+except Exception as e:
+    print(f"Failed to load weights: {e}")
+    print("Falling back to default weights from HuggingFace...")
+    image_processor = AutoImageProcessor.from_pretrained("microsoft/table-transformer-detection")
+    model = TableTransformerForObjectDetection.from_pretrained("microsoft/table-transformer-detection")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model.to(device)
-print("")
+print(f"Model loaded successfully and moved to {device}")
 
 # let's load an example image
-file_path = "C:/Users/yasar/OneDrive/Skrivebord/Card_3.JPG"
+file_path = "C:/Users/yasar/OneDrive/Skrivebord/Card_3.JPG" 
 print(f"Loading image from: {file_path}")
 image = Image.open(file_path).convert("RGB")
 print("Image loaded successfully.")
