@@ -7,7 +7,7 @@ from transformers import AutoImageProcessor
 from transformers.models.detr import DetrForSegmentation
 
 # Load your image here
-image_path = "C:/Users/yasar/OneDrive/Skrivebord/Card_3.JPG"
+image_path = '/Users/yasarbasturk/Desktop/Skole/Data Science/4. Semester/vacccards_manually_taken_png/IMG_4985.png'
 img = Image.open(image_path)  # Load the image
 
 img_proc = AutoImageProcessor.from_pretrained(
@@ -37,7 +37,8 @@ bbox_pred = img_proc.post_process_object_detection(
 
 # Function to visualize results
 def visualize_results(image, segmentation_mask, bbox_pred):
-    plt.figure(figsize=(15, 15))
+    # Reduce figure size from 15,15 to 8,8
+    plt.figure(figsize=(8, 8))
     
     # Convert image to numpy array
     image_np = np.array(image)
@@ -59,7 +60,8 @@ def visualize_results(image, segmentation_mask, bbox_pred):
                                         edgecolor='red', facecolor='none', linewidth=2))
     
     plt.axis('off')
-    plt.title("Detected Tables and Segmentation Masks")
+    plt.title("Detected Tables and Segmentation Masks", fontsize=10)  # Added smaller fontsize
+    plt.tight_layout()  # Added to ensure proper fitting
     plt.show()
 
 # Call the visualization function

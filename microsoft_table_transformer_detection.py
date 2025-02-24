@@ -14,7 +14,7 @@ model.to(device)
 print(f"Model loaded successfully and moved to {device}")
 
 # let's load an example image
-file_path = '/Users/yasarbasturk/Desktop/IMG_4977.PNG'
+file_path = '/Users/yasarbasturk/Desktop/Skole/Data Science/4. Semester/vacccards_manually_taken_png/IMG_4985.png'
 print(f"Loading image from: {file_path}")
 image = Image.open(file_path).convert("RGB")
 print("Image loaded successfully.")
@@ -59,7 +59,7 @@ detection_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
-     
+
 
 # Prepare image for the model
 inputs = image_processor(images=image, return_tensors="pt").to(device)
@@ -137,7 +137,7 @@ def fig2img(fig):
 def visualize_detected_tables(img, det_tables, out_path=None):
     plt.imshow(img, interpolation="lanczos")
     fig = plt.gcf()
-    fig.set_size_inches(20, 20)
+    fig.set_size_inches(8, 8)
     ax = plt.gca()
 
     for det_table in det_tables:
@@ -176,15 +176,14 @@ def visualize_detected_tables(img, det_tables, out_path=None):
                         Patch(facecolor=(0.95, 0.6, 0.1), edgecolor=(0.95, 0.6, 0.1),
                                 label='Table (rotated)', hatch='//////', alpha=0.3)]
     plt.legend(handles=legend_elements, bbox_to_anchor=(0.5, -0.02), loc='upper center', borderaxespad=0,
-                    fontsize=10, ncol=2)
-    plt.gcf().set_size_inches(10, 10)
+                    fontsize=8, ncol=2)
     plt.axis('off')
 
     if out_path is not None:
       plt.savefig(out_path, bbox_inches='tight', dpi=150)
 
     return fig
-     
+
 
 fig = visualize_detected_tables(image, objects)
 print("Visualization created.")
