@@ -2,13 +2,13 @@ from paddlex import create_pipeline
 import os
 
 # Create output directory if it doesn't exist
-output_dir = "output/IMG_5059/"
+output_dir = "output/IMG_5056/"
 os.makedirs(output_dir, exist_ok=True)
 
 pipeline = create_pipeline(pipeline="table_recognition")
 
 output = pipeline.predict(
-    input="inputs/IMG_5059.png",
+    input="inputs/IMG_5056.png",
     # Removing the unsupported parameters
     # use_doc_orientation_classify=False,
     # use_doc_unwarping=False,

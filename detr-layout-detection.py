@@ -7,8 +7,11 @@ from transformers import AutoImageProcessor
 from transformers.models.detr import DetrForSegmentation
 
 # Load your image here
-image_path = '/Users/yasarbasturk/Desktop/Skole/Data Science/4. Semester/vacccards_manually_taken_png/IMG_4985.png'
+image_path = "inputs/IMG_5056.png"
 img = Image.open(image_path)  # Load the image
+
+# Convert image to RGB format to ensure compatibility
+img = img.convert('RGB')
 
 img_proc = AutoImageProcessor.from_pretrained(
     "cmarkea/detr-layout-detection"

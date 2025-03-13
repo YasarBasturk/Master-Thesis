@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+
+#Deskew – Corrects small rotations in the image
 def deskew_image(image):
     """Deskew the image if it has a minor rotation."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -25,6 +27,7 @@ def deskew_image(image):
                              borderMode=cv2.BORDER_REPLICATE)
     return rotated
 
+#CLAHE – Corrects uneven lighting
 def clahe_enhance(image):
     """Apply CLAHE for local contrast enhancement."""
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
@@ -34,7 +37,7 @@ def clahe_enhance(image):
     merged = cv2.merge((cl, a, b))
     enhanced = cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
     return enhanced
-
+#Gamma – Corrects overall brightness
 def gamma_correction(image, gamma=1.2):
     """Adjust overall brightness via gamma correction."""
     invGamma = 1.0 / gamma
@@ -70,7 +73,7 @@ def find_document_corners(image, min_area_ratio=0.3):
         if len(approx) == 4:
             return approx.reshape((4, 2))
     return None
-
+#Order points – Orders the corner points of the document
 def order_points(pts):
     """Order corner points [top-left, top-right, bottom-right, bottom-left]."""
     rect = np.zeros((4, 2), dtype="float32")
@@ -111,6 +114,7 @@ def dewarp_image(image, min_area_ratio=0.3):
     warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
     return warped
 
+
 def debug_preprocessing(img_path, output_prefix="debug_step"):
     """
     1) Loads image
@@ -123,7 +127,7 @@ def debug_preprocessing(img_path, output_prefix="debug_step"):
     import os
 
     # Load original
-    image = cv2.imread("inputs/IMG_5059.png")
+    image = cv2.imread("inputs/IMG_5011.png")
     step_count = 1
 
     # Step 0: Save the original to compare later
@@ -152,4 +156,4 @@ def debug_preprocessing(img_path, output_prefix="debug_step"):
 
     return gamma_result
 
-final_image = debug_preprocessing("inputs/IMG_5059.png", output_prefix="my_debug")
+final_image = debug_preprocessing("inputs/IMG_5011.png", output_prefix="my_debug")
