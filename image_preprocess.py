@@ -127,7 +127,7 @@ def debug_preprocessing(img_path, output_prefix="debug_step"):
     import os
 
     # Load original
-    image = cv2.imread("inputs/IMG_5011.png")
+    image = cv2.imread("input_cropped_manually/IMG_5007 Background Removed.png")
     step_count = 1
 
     # Step 0: Save the original to compare later

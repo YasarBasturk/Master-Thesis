@@ -8,7 +8,7 @@ os.makedirs(output_dir, exist_ok=True)
 pipeline = create_pipeline(pipeline="table_recognition")
 
 output = pipeline.predict(
-    input="inputs/IMG_5056.png",
+    input="input_cropped_manually/IMG_5059.png",
     # Removing the unsupported parameters
     # use_doc_orientation_classify=False,
     # use_doc_unwarping=False,

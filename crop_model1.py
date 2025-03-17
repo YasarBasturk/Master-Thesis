@@ -106,5 +106,7 @@ def four_point_transform(image, rect):
     return warped
 
 # Example usage:
-all_tables = find_multiple_cards_and_crop("inputs/IMG_5056.png", output_dir="output")
+all_tables = find_multiple_cards_and_crop("inputs/IMG_5011.png", output_dir="output")
 print(f"Found {len(all_tables)} rectangular tables.")
+
+#this model is not working well on "bad" images.
