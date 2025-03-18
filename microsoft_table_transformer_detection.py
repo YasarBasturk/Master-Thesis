@@ -4,6 +4,7 @@ from PIL import Image
 from huggingface_hub import hf_hub_download
 from torchvision import transforms
 import torch
+import os
 
 # Initialize the model directly from pretrained
 image_processor = AutoImageProcessor.from_pretrained("microsoft/table-transformer-detection")
@@ -14,7 +15,7 @@ model.to(device)
 print(f"Model loaded successfully and moved to {device}")
 
 # let's load an example image
-file_path = '/Users/yasarbasturk/Desktop/Skole/Data Science/4. Semester/vacccards_manually_taken_png/IMG_4985.png'
+file_path = 'inputs/IMG_5056.png'
 print(f"Loading image from: {file_path}")
 image = Image.open(file_path).convert("RGB")
 print("Image loaded successfully.")
@@ -184,10 +185,19 @@ def visualize_detected_tables(img, det_tables, out_path=None):
 
     return fig
 
+# Create output directory if it doesn't exist
+output_dir = "output/Microsoft-table-transformer"
+os.makedirs(output_dir, exist_ok=True)
 
-fig = visualize_detected_tables(image, objects)
-print("Visualization created.")
+# Get the filename from the input path
+input_filename = os.path.basename(file_path)
+output_filename = os.path.splitext(input_filename)[0] + "_detected.png"
+output_path = os.path.join(output_dir, output_filename)
 
-# Add this line to display the figure
-plt.show()
-print("Figure displayed.")
+# Visualize and save the result
+fig = visualize_detected_tables(image, objects, out_path=output_path)
+print(f"Visualization saved to: {output_path}")
+
+# Remove the plt.show() call to prevent popup
+plt.close(fig)  # Close the figure to free memory
+print("Processing complete.")

@@ -116,44 +116,41 @@ def dewarp_image(image, min_area_ratio=0.3):
 
 
 def debug_preprocessing(img_path, output_prefix="debug_step"):
-    """
-    1) Loads image
-    2) Deskews -> saves result
-    3) Dewarps -> saves result
-    4) CLAHE  -> saves result
-    5) Gamma  -> saves result
-    Return final image.
-    """
+
     import os
+    
+    # Create output directory if it doesn't exist
+    output_dir = "output/image-preprocessing"
+    os.makedirs(output_dir, exist_ok=True)
 
     # Load original
-    image = cv2.imread("input_cropped_manually/IMG_5007 Background Removed.png")
+    image = cv2.imread("inputs/IMG_5052.png")
     step_count = 1
 
     # Step 0: Save the original to compare later
-    cv2.imwrite(f"{output_prefix}_{step_count}_original.jpg", image)
+    cv2.imwrite(f"{output_dir}/{output_prefix}_{step_count}_original.jpg", image)
     step_count += 1
 
     # Step 1: Deskew
-    deskewed = deskew_image(image)
-    cv2.imwrite(f"{output_prefix}_{step_count}_deskewed.jpg", deskewed)
-    step_count += 1
+    #deskewed = deskew_image(image)
+    #cv2.imwrite(f"{output_dir}/{output_prefix}_{step_count}_deskewed.jpg", deskewed)
+    #step_count += 1
 
     # Step 2: Dewarp
-    dewarped = dewarp_image(deskewed, min_area_ratio=0.3)
-    cv2.imwrite(f"{output_prefix}_{step_count}_dewarped.jpg", dewarped)
+    dewarped = dewarp_image(image, min_area_ratio=0.3)
+    cv2.imwrite(f"{output_dir}/{output_prefix}_{step_count}_dewarped.jpg", dewarped)
     step_count += 1
 
     # Step 3: CLAHE
     clahe_result = clahe_enhance(dewarped)
-    cv2.imwrite(f"{output_prefix}_{step_count}_clahe.jpg", clahe_result)
+    cv2.imwrite(f"{output_dir}/{output_prefix}_{step_count}_clahe.jpg", clahe_result)
     step_count += 1
 
     # Step 4: Gamma correction
     gamma_result = gamma_correction(clahe_result, gamma=1.2)
-    cv2.imwrite(f"{output_prefix}_{step_count}_gamma.jpg", gamma_result)
+    cv2.imwrite(f"{output_dir}/{output_prefix}_{step_count}_gamma.jpg", gamma_result)
     step_count += 1
 
     return gamma_result
 
-final_image = debug_preprocessing("inputs/IMG_5011.png", output_prefix="my_debug")
+final_image = debug_preprocessing("inputs/IMG_5019.png", output_prefix="my_debug")

@@ -68,8 +68,15 @@ def find_multiple_cards_and_crop(image_path, output_dir=None):
                     cv2.imwrite(outpath, cropped)
                     print(f"Saved: {outpath}")
 
-    # Debug image: see all 4-corner contours drawn
-    cv2.imwrite("debug_contours.jpg", debug_img)
+    # Debug image: save in the same output directory if specified
+    if output_dir:
+        debug_path = f"{output_dir}/debug_contours.jpg"
+    else:
+        debug_path = "debug_contours.jpg"
+    cv2.imwrite(debug_path, debug_img)
+    
+    if output_dir:
+        print(f"Saved debug image: {debug_path}")
 
     return all_crops  # return a list of all cropped rectangles
 
@@ -106,7 +113,7 @@ def four_point_transform(image, rect):
     return warped
 
 # Example usage:
-all_tables = find_multiple_cards_and_crop("inputs/IMG_5011.png", output_dir="output")
+all_tables = find_multiple_cards_and_crop("inputs/IMG_5056.png", output_dir="output/crop_model1")
 print(f"Found {len(all_tables)} rectangular tables.")
 
 #this model is not working well on "bad" images.

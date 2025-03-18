@@ -2,6 +2,7 @@ import torch
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 from transformers import AutoImageProcessor
 from transformers.models.detr import DetrForSegmentation
@@ -39,7 +40,7 @@ bbox_pred = img_proc.post_process_object_detection(
 )
 
 # Function to visualize results
-def visualize_results(image, segmentation_mask, bbox_pred):
+def visualize_results(image, segmentation_mask, bbox_pred, save_path=None):
     # Reduce figure size from 15,15 to 8,8
     plt.figure(figsize=(8, 8))
     
@@ -63,9 +64,25 @@ def visualize_results(image, segmentation_mask, bbox_pred):
                                         edgecolor='red', facecolor='none', linewidth=2))
     
     plt.axis('off')
-    plt.title("Detected Tables and Segmentation Masks", fontsize=10)  # Added smaller fontsize
-    plt.tight_layout()  # Added to ensure proper fitting
-    plt.show()
+    plt.title("Detected Tables and Segmentation Masks", fontsize=10)
+    plt.tight_layout()
+    
+    if save_path:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        plt.savefig(save_path)
+        print(f"Visualization saved to {save_path}")
+    else:
+        plt.show()
 
-# Call the visualization function
-visualize_results(img, segmentation_mask, bbox_pred)
+# Create output path
+output_dir = "output/detr-layout-detection"
+os.makedirs(output_dir, exist_ok=True)
+
+# Get the filename without extension
+image_filename = os.path.basename(image_path)
+image_name = os.path.splitext(image_filename)[0]
+output_path = os.path.join(output_dir, f"{image_name}_detection.png")
+
+# Call the visualization function with save path
+visualize_results(img, segmentation_mask, bbox_pred, save_path=output_path)
