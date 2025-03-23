@@ -1,22 +1,32 @@
 # Master-Thesis
 
-# OCR Pipeline:
+## OCR Pipeline Overview
 
-# The pipeline is as follows: Apply preprocesing steps 
-# --> use the preprocessed image with a OCR model 
-# --> Use the extracted data which comes from a txt/JSON file after running the OCR model 
-# -------------------------------- Above the line of work has been achieved so far
-# Later on:
-# --> Document aligner
-# ... to be dediced 
+The pipeline consists of the following steps:
 
-# A more specific pipeline which follows the names of the scripts etc:
-#image_preprocess --> paddle_OCR_detection --> res_0.txt (the created txt file from the extracted data)
+1. Apply preprocessing steps to the input images
+2. Use the preprocessed images with an OCR model
+3. Extract data from the resulting txt/JSON files
 
+**Current Status:** All steps above have been implemented successfully.
 
-# These scripts do not provide additional information to the OCR model but helped me to get to where I am now: 
-# --> Doc_Scanner_Static + utlis script does work fine but the results are not in good quality. The Document scanner program is a good alternative to overcome the preprocessing steps if necessary.
-# --> microsoft_table_transformer does not work well with the images I have, it works very good on pdf files etc, where the tables a constructed very well and its data inside is alligned well.
-# --> detr-layout-detection does work well with the images I have, but there is not extraction element. I did'nt know how to use this model for my case, but led me to the next model etc.
-# --> crop_model1 does crop any tables it detects, which can be used later (maybe), if I find out that cropping the image makes the OCR model work better because the tables and its data is zoomed in.
-# --> I did have a paddle_X script which is actually based on the advanced version of the paddle_OCR_detection script, but did not provide any difference than the other scripts. It detects and that is it and therefore I did not use it.
+### Future Work
+- Document aligner
+- Additional steps to be determined
+
+## Implementation Details
+
+The specific pipeline follows this workflow:
+1. `image_preprocess.py` → 
+2. `paddle_OCR_detection.py` → 
+3. `res_0.txt` (output file containing extracted data)
+
+## Related Scripts and Experiments
+
+The following scripts were explored during development but are not part of the main pipeline:
+
+- **Doc_Scanner_Static + utils**: Works but produces lower quality results. Could serve as an alternative preprocessing approach if needed.
+- **microsoft_table_transformer**: Works well with structured PDF files but not with our image dataset. Tables need to be well-constructed with properly aligned data.
+- **detr-layout-detection**: Effective with our images for detection, but lacks extraction capabilities.
+- **crop_model1**: Detects and crops tables, which might be useful if zooming in on tables improves OCR accuracy.
+- **paddle_X**: Based on an advanced version of `paddle_OCR_detection`, but provided no significant advantages over the current implementation.
