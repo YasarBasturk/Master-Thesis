@@ -1,46 +1,57 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const uploadForm = document.getElementById('uploadForm');
-    const templateForm = document.getElementById('templateForm');
+    const processImageForm = document.getElementById('processImageForm');
     const saveBtn = document.getElementById('saveBtn');
     const spinner = document.getElementById('spinner');
     const imageContainer = document.getElementById('imageContainer');
+    const originalImageContainer = document.getElementById('originalImageContainer');
     const textResults = document.getElementById('textResults');
     const saveResult = document.getElementById('saveResult');
-    const templateResult = document.getElementById('templateResult');
+    const processResult = document.getElementById('processResult');
     
     let ocrData = null;
     let editedItems = new Set();
     
     // If template is available, show a message
-    if (typeof hasTemplate !== 'undefined' && hasTemplate) {
+    if (window.hasTemplate) {
         console.log('Template is loaded. Only non-template text will be editable.');
     }
 
-    // Handle template upload
-    if (templateForm) {
-        templateForm.addEventListener('submit', function(e) {
+    // Handle image processing form
+    if (processImageForm) {
+        processImageForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const templateFile = document.getElementById('templateFile').files[0];
+            const imageFile = document.getElementById('imageFile').files[0];
             
-            if (!templateFile) {
-                alert('Template JSON file is required');
+            if (!imageFile) {
+                alert('Image file is required');
                 return;
             }
             
             const formData = new FormData();
-            formData.append('json_file', templateFile);
+            formData.append('image_file', imageFile);
             
-            // Show loading spinner
+            // Show loading spinner and processing message
             spinner.classList.remove('d-none');
+            processResult.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Processing your image, please wait...</div>';
             
-            fetch('/create_template', {
+            // Clear previous data
+            textResults.innerHTML = '<p class="text-muted">Processing image...</p>';
+            imageContainer.innerHTML = '<p class="text-muted">Processing image...</p>';
+            originalImageContainer.innerHTML = '<p class="text-muted">Processing image...</p>';
+            
+            fetch('/process_image', {
                 method: 'POST',
                 body: formData
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.error || 'Server error: ' + response.status);
+                    }).catch(() => {
+                        // If we can't parse the JSON, just throw the HTTP error
+                        throw new Error('Network response was not ok: ' + response.status);
+                    });
                 }
                 return response.json();
             })
@@ -48,99 +59,73 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Hide spinner
                 spinner.classList.add('d-none');
                 
-                if (data.success) {
-                    // Update UI to indicate template is loaded without page refresh
-                    const templateBadge = document.querySelector('.template-badge');
-                    if (templateBadge) {
-                        templateBadge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Template Loaded';
-                        templateBadge.classList.remove('template-missing');
-                    }
-                    
-                    // Update UI warning/success messages
-                    const warningAlerts = document.querySelectorAll('.alert-warning');
-                    warningAlerts.forEach(alert => {
-                        alert.classList.remove('alert-warning');
-                        alert.classList.add('alert-success');
-                        alert.innerHTML = '<i class="bi bi-info-circle"></i> <strong>Template Active:</strong> The system will use the template to identify which text is editable.';
-                    });
-                    
-                    // Set the hasTemplate variable to true
-                    window.hasTemplate = true;
-                    
-                    // Show success message
-                    templateResult.innerHTML = `<div class="alert alert-success">Template set successfully!</div>`;
-                    
-                    // Show the modal instead of reloading
-                    const successModal = new bootstrap.Modal(document.getElementById('templateSuccessModal'));
-                    successModal.show();
-                } else {
-                    templateResult.innerHTML = `<div class="alert alert-danger">Error: ${data.error || 'Unknown error'}</div>`;
+                // Even with a successful HTTP response, check if the data indicates an error
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown server error');
                 }
+                
+                // Save OCR data
+                if (!data.ocr_results || !Array.isArray(data.ocr_results)) {
+                    throw new Error('Invalid OCR data received from server');
+                }
+                
+                ocrData = data.ocr_results;
+                
+                // Display original and annotated images
+                if (data.original_image) {
+                    displayOriginalImage(data.original_image);
+                }
+                
+                if (data.image) {
+                    displayAnnotatedImage(data.image);
+                }
+                
+                // Display text results (only handwritten/editable text)
+                displayTextResults(ocrData);
+                
+                // Enable save button
+                saveBtn.disabled = false;
+                
+                // Show success message
+                processResult.innerHTML = `<div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i> Image processed successfully!
+                    <br>
+                    <small>${ocrData.length} text elements detected</small>
+                </div>`;
             })
             .catch(error => {
                 spinner.classList.add('d-none');
                 console.error('Error:', error);
-                templateResult.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                processResult.innerHTML = `<div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Error processing image: ${error.message}
+                </div>`;
+                
+                // Reset containers
+                textResults.innerHTML = '<p class="text-muted">Upload an image to view and edit detected text</p>';
+                imageContainer.innerHTML = '<p class="text-muted">Upload an image to see annotated results</p>';
+                originalImageContainer.innerHTML = '<p class="text-muted">Upload an image to see it here</p>';
             });
         });
     }
 
-    // Handle file upload
-    uploadForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const jsonFile = document.getElementById('jsonFile').files[0];
-        const imageFile = document.getElementById('imageFile').files[0];
-        
-        if (!jsonFile || !imageFile) {
-            alert('Both JSON and image files are required');
+    // Display original image
+    function displayOriginalImage(base64Image) {
+        if (!base64Image) {
+            originalImageContainer.innerHTML = '<p class="text-danger">Unable to load original image</p>';
             return;
         }
         
-        const formData = new FormData();
-        formData.append('json_file', jsonFile);
-        formData.append('image_file', imageFile);
-        
-        // Show loading spinner
-        spinner.classList.remove('d-none');
-        
-        fetch('/load_data', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Hide spinner
-            spinner.classList.add('d-none');
-            
-            // Save OCR data
-            ocrData = data.ocr_results;
-            
-            // Display image
-            displayImage(data.image);
-            
-            // Display text results (only handwritten/editable text)
-            displayTextResults(ocrData);
-            
-            // Enable save button
-            saveBtn.disabled = false;
-        })
-        .catch(error => {
-            spinner.classList.add('d-none');
-            console.error('Error:', error);
-            alert('Error loading data: ' + error.message);
-        });
-    });
+        originalImageContainer.innerHTML = `
+            <div class="img-container">
+                <img src="data:image/jpeg;base64,${base64Image}" alt="Original Image" class="img-fluid">
+            </div>
+        `;
+    }
 
     // Display annotated image
-    function displayImage(base64Image) {
+    function displayAnnotatedImage(base64Image) {
         if (!base64Image) {
-            imageContainer.innerHTML = '<p class="text-danger">Unable to load image</p>';
+            imageContainer.innerHTML = '<p class="text-danger">Unable to load annotated image</p>';
             return;
         }
         
@@ -168,6 +153,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Clean up results - ensure all items have valid text
+        results.forEach(item => {
+            if (!item.text || item.text === 'undefined' || item.text === 'NO_TEXT_DETECTED') {
+                item.text = '';
+                console.log('Fixed item with missing/undefined text:', item);
+            }
+        });
+        
         // Filter out template items - only keep handwritten/editable items
         const editableItems = results.filter(item => {
             // Trust the server's handwritten flag without additional checks
@@ -184,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`Total items: ${results.length}, Editable items: ${handwrittenCount}`);
         
         // If we have a template but no handwritten text, show a helpful message
-        if (handwrittenCount === 0 && typeof hasTemplate !== 'undefined' && hasTemplate) {
+        if (handwrittenCount === 0 && window.hasTemplate) {
             textResults.innerHTML = `
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle-fill"></i>
@@ -207,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle"></i> 
                     <strong>Template-Based Mode:</strong> 
-                    ${hasTemplate ? 
+                    ${window.hasTemplate ? 
                       'Only text that doesn\'t match the template is shown below and can be edited.' : 
                       'No template found. All text is displayed and can be toggled for editing.'}
                 </div>
@@ -242,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="text-type-badge badge-handwritten">
                                 Editable
                             </div>
-                            ${item.text}
+                            ${item.text || '<i>Empty text</i>'}
                         </div>
                         <div class="text-coords">Region: ${JSON.stringify(item.text_region)}</div>
                     </div>
@@ -347,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                             
                             // Update image
-                            displayImage(data.image);
+                            displayAnnotatedImage(data.image);
                         } else {
                             alert('Error updating text');
                         }

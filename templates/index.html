@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON Text Editor</title>
+    <title>OCR Text Editor</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -12,7 +12,7 @@
     <div class="container-fluid">
         <header class="bg-primary text-white text-center py-3 mb-4">
             <h1>OCR Text Editor</h1>
-            <p class="lead">Upload, view, and correct OCR results</p>
+            <p class="lead">Upload an image for automatic processing</p>
             {% if has_template %}
             <div class="template-badge">
                 <i class="bi bi-check-circle-fill"></i> Template Loaded
@@ -25,83 +25,84 @@
         </header>
 
         <div class="row">
-            <!-- File Upload Section -->
+            <!-- Image Upload Section -->
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title">Upload Files</h3>
+                        <h3 class="card-title">Upload Image</h3>
                     </div>
                     <div class="card-body">
                         {% if has_template %}
                         <div class="alert alert-success mb-3">
                             <i class="bi bi-info-circle"></i> 
-                            <strong>Template Active:</strong> The system will use the template to identify which text is editable.
+                            <strong>Ready to process:</strong> Upload an image to automatically detect and make editable text available.
                         </div>
                         {% else %}
                         <div class="alert alert-warning mb-3">
                             <i class="bi bi-exclamation-triangle"></i> 
-                            <strong>No Template Found:</strong> The system will try to guess which text is editable. 
-                            Please use the "Set Template" section below first.
+                            <strong>No Template Found:</strong> Contact administrator to set up a template.
                         </div>
                         {% endif %}
-                        <form id="uploadForm" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="jsonFile" class="form-label">JSON File</label>
-                                <input type="file" class="form-control" id="jsonFile" accept=".json" required>
-                                <div class="form-text">Upload your OCR JSON results</div>
-                            </div>
+                        <form id="processImageForm" enctype="multipart/form-data">
                             <div class="mb-3">
                                 <label for="imageFile" class="form-label">Image File</label>
-                                <input type="file" class="form-control" id="imageFile" accept="image/*" required>
-                                <div class="form-text">Upload the original image</div>
+                                <input type="file" class="form-control" id="imageFile" name="image_file" accept="image/*" required>
+                                <div class="form-text">Upload your image for automatic OCR processing</div>
                             </div>
-                            <button type="submit" class="btn btn-primary">Load Data</button>
+                            <button type="submit" class="btn btn-primary">Process Image</button>
                         </form>
-                    </div>
-                </div>
-                
-                <!-- Template Upload Section -->
-                <div class="card mt-3">
-                    <div class="card-header bg-info text-white">
-                        <h3 class="card-title">Set Template</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-info mb-3">
-                            <i class="bi bi-info-circle"></i> 
-                            <strong>Template Setup:</strong> Upload your res_0.json file to set as template. 
-                            Text matching this template will not be editable.
-                        </div>
-                        <form id="templateForm" enctype="multipart/form-data">
-                            <div class="mb-3">
-                                <label for="templateFile" class="form-label">Template JSON File</label>
-                                <input type="file" class="form-control" id="templateFile" accept=".json" required>
-                                <div class="form-text">Upload your template JSON file (res_0.json)</div>
-                            </div>
-                            <button type="submit" class="btn btn-info">Set As Template</button>
-                        </form>
-                        <div id="templateResult" class="mt-2"></div>
+                        <div id="processResult" class="mt-3"></div>
                     </div>
                 </div>
                 
                 <div class="card mt-3">
                     <div class="card-header bg-success text-white">
-                        <h3 class="card-title">Save</h3>
+                        <h3 class="card-title">Save Results</h3>
                     </div>
                     <div class="card-body">
                         <button id="saveBtn" class="btn btn-success" disabled>Save Corrected JSON</button>
                         <div id="saveResult" class="mt-2"></div>
                     </div>
                 </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h3 class="card-title">Processing Information</h3>
+                    </div>
+                    <div class="card-body">
+                        <p><i class="bi bi-info-circle"></i> When you upload an image:</p>
+                        <ol>
+                            <li>The image is preprocessed to enhance quality</li>
+                            <li>Text is automatically detected using OCR</li>
+                            <li>Template matching identifies editable vs non-editable text</li>
+                            <li>You can edit the handwritten text elements</li>
+                        </ol>
+                    </div>
+                </div>
             </div>
 
             <!-- Image Display Section -->
             <div class="col-md-8 mb-4">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title">Annotated Image</h3>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h3 class="card-title">Original Image</h3>
+                            </div>
+                            <div class="card-body text-center" id="originalImageContainer">
+                                <p class="text-muted">Upload an image to see it here</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body text-center" id="imageContainer">
-                        <p class="text-muted">Upload files to view the annotated image</p>
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h3 class="card-title">Annotated Image</h3>
+                            </div>
+                            <div class="card-body text-center" id="imageContainer">
+                                <p class="text-muted">Upload an image to see annotated results</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -116,7 +117,7 @@
                     </div>
                     <div class="card-body">
                         <div id="textResults">
-                            <p class="text-muted">Upload files to view and edit OCR text results</p>
+                            <p class="text-muted">Upload an image to view and edit detected text</p>
                         </div>
                     </div>
                 </div>
@@ -129,30 +130,15 @@
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-    </div>
-
-    <!-- Template Success Modal -->
-    <div class="modal fade" id="templateSuccessModal" tabindex="-1" aria-labelledby="templateSuccessModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="templateSuccessModalLabel">Template Set Successfully</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Your template has been uploaded and set successfully! You can now proceed to upload your JSON and image files.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Continue</button>
-                </div>
-            </div>
-        </div>
+        <div class="spinner-message text-white mt-3">Processing your image...</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Template status passed via data attribute -->
+    <div id="templateStatus" data-has-template="{{ 'true' if has_template else 'false' }}" style="display: none;"></div>
     <script>
-        // Pass template status to JavaScript
-        const hasTemplate = {% if has_template %}true{% else %}false{% endif %};
+        // Retrieve template status from data attribute
+        window.hasTemplate = document.getElementById('templateStatus').getAttribute('data-has-template') === 'true';
     </script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
