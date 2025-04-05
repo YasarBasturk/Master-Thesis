@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const processImageForm = document.getElementById('processImageForm');
     const saveBtn = document.getElementById('saveBtn');
+    const viewDocumentsBtn = document.getElementById('viewDocumentsBtn');
     const spinner = document.getElementById('spinner');
     const imageContainer = document.getElementById('imageContainer');
     const originalImageContainer = document.getElementById('originalImageContainer');
@@ -8,8 +9,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const saveResult = document.getElementById('saveResult');
     const processResult = document.getElementById('processResult');
     
+    // Bootstrap modals
+    const documentsModal = new bootstrap.Modal(document.getElementById('documentsModal'));
+    const documentDetailsModal = new bootstrap.Modal(document.getElementById('documentDetailsModal'));
+    
+    // Document viewer elements
+    const documentsList = document.getElementById('documentsList');
+    const documentInfo = document.getElementById('documentInfo');
+    const documentImage = document.getElementById('documentImage');
+    const documentTextItems = document.getElementById('documentTextItems');
+    
     let ocrData = null;
     let editedItems = new Set();
+    let currentDocumentId = null;
     
     // If template is available, show a message
     if (window.hasTemplate) {
@@ -118,8 +130,27 @@ document.addEventListener('DOMContentLoaded', function() {
         originalImageContainer.innerHTML = `
             <div class="img-container">
                 <img src="data:image/jpeg;base64,${base64Image}" alt="Original Image" class="img-fluid">
+                <div class="image-controls mt-2">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input toggle-fit" type="checkbox" id="toggleOriginalFit" checked>
+                        <label class="form-check-label" for="toggleOriginalFit">Fit to view</label>
+                    </div>
+                </div>
             </div>
         `;
+        
+        // Add toggle functionality
+        const toggleFit = document.getElementById('toggleOriginalFit');
+        if (toggleFit) {
+            toggleFit.addEventListener('change', function() {
+                const imgContainer = this.closest('.img-container');
+                if (this.checked) {
+                    imgContainer.classList.remove('actual-size');
+                } else {
+                    imgContainer.classList.add('actual-size');
+                }
+            });
+        }
     }
 
     // Display annotated image
@@ -132,6 +163,12 @@ document.addEventListener('DOMContentLoaded', function() {
         imageContainer.innerHTML = `
             <div class="img-container">
                 <img src="data:image/jpeg;base64,${base64Image}" alt="Annotated Image" class="img-fluid">
+                <div class="image-controls mt-2">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input toggle-fit" type="checkbox" id="toggleAnnotatedFit" checked>
+                        <label class="form-check-label" for="toggleAnnotatedFit">Fit to view</label>
+                    </div>
+                </div>
                 <div class="image-legend mt-3">
                     <div class="d-flex align-items-center mb-2">
                         <span class="legend-color-box" style="background-color: rgb(0, 255, 0);"></span>
@@ -144,6 +181,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
+        
+        // Add toggle functionality
+        const toggleFit = document.getElementById('toggleAnnotatedFit');
+        if (toggleFit) {
+            toggleFit.addEventListener('change', function() {
+                const imgContainer = this.closest('.img-container');
+                if (this.checked) {
+                    imgContainer.classList.remove('actual-size');
+                } else {
+                    imgContainer.classList.add('actual-size');
+                }
+            });
+        }
     }
 
     // Display text results with editing capability
@@ -263,35 +313,43 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', function() {
                 const index = parseInt(this.getAttribute('data-index'));
-                const item = ocrData[index];
                 
+                // Get the text content element
                 const textItem = document.querySelector(`.text-item[data-index="${index}"]`);
                 const textContent = textItem.querySelector('.text-content');
                 
                 // Get the current text
-                const currentText = item.text;
+                const currentText = results[index].text || '';
                 
                 // Replace content with textarea
                 textContent.innerHTML = `
-                    <div class="text-type-badge badge-handwritten">Editable</div>
-                    <textarea class="form-control mb-2">${currentText}</textarea>
-                    <div class="d-flex justify-content-end">
-                        <button class="btn btn-sm btn-secondary me-2 btn-cancel">Cancel</button>
-                        <button class="btn btn-sm btn-success btn-save">Save</button>
+                    <div class="text-type-badge badge-handwritten">
+                        Editable
+                    </div>
+                    <div class="edit-controls">
+                        <textarea class="form-control edit-textarea" rows="3">${currentText}</textarea>
+                        <div class="d-flex mt-2">
+                            <button class="btn btn-sm btn-secondary me-2 cancel-edit">Cancel</button>
+                            <button class="btn btn-sm btn-success save-edit" data-index="${index}">Save</button>
+                        </div>
                     </div>
                 `;
                 
                 // Add event listeners to cancel and save buttons
-                textContent.querySelector('.btn-cancel').addEventListener('click', function() {
+                const cancelBtn = textContent.querySelector('.cancel-edit');
+                const saveBtn = textContent.querySelector('.save-edit');
+                
+                cancelBtn.addEventListener('click', function() {
                     textContent.innerHTML = `
-                        <div class="text-type-badge badge-handwritten">Editable</div>
-                        ${currentText}
+                        <div class="text-type-badge badge-handwritten">
+                            Editable
+                        </div>
+                        ${currentText || '<i>Empty text</i>'}
                     `;
                 });
                 
-                textContent.querySelector('.btn-save').addEventListener('click', function() {
-                    const newText = textContent.querySelector('textarea').value.trim();
-                    if (newText === '') return;
+                saveBtn.addEventListener('click', function() {
+                    const newText = textContent.querySelector('.edit-textarea').value;
                     
                     // Show spinner
                     spinner.classList.remove('d-none');
@@ -300,55 +358,58 @@ document.addEventListener('DOMContentLoaded', function() {
                     fetch('/update_text', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
                             index: index,
                             text: newText
                         })
                     })
-                    .then(response => {
-                        if (!response.ok) {
-                            return response.json().then(data => {
-                                throw new Error(data.error || 'Error updating text');
-                            });
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
                         // Hide spinner
                         spinner.classList.add('d-none');
                         
                         if (data.success) {
                             // Update local data
-                            ocrData[index].text = newText;
+                            results[index].text = newText;
                             
                             // Update UI
                             textContent.innerHTML = `
-                                <div class="text-type-badge badge-handwritten">Editable</div>
-                                ${newText}
+                                <div class="text-type-badge badge-handwritten">
+                                    Editable
+                                </div>
+                                ${newText || '<i>Empty text</i>'}
                             `;
-                            textItem.classList.add('text-item-edited');
                             
                             // Track edited items
                             editedItems.add(index);
                             
                             // Update container attribute for filtering
-                            const container = textItem.closest('.text-item-container');
-                            if (container) {
-                                container.dataset.edited = 'true';
-                            }
+                            const container = document.querySelector(`.text-item-container[data-index="${index}"]`);
+                            container.setAttribute('data-edited', 'true');
+                            textItem.classList.add('text-item-edited');
                             
                             // Update image
-                            displayAnnotatedImage(data.image);
+                            if (data.image) {
+                                displayAnnotatedImage(data.image);
+                            }
                         } else {
-                            alert('Error updating text');
+                            alert(`Failed to update text: ${data.error || 'Unknown error'}`);
+                            
+                            // Restore original content
+                            textContent.innerHTML = `
+                                <div class="text-type-badge badge-handwritten">
+                                    Editable
+                                </div>
+                                ${currentText || '<i>Empty text</i>'}
+                            `;
                         }
                     })
                     .catch(error => {
                         spinner.classList.add('d-none');
                         console.error('Error:', error);
-                        alert(error.message);
+                        alert(`Error updating text: ${error.message}`);
                     });
                 });
             });
@@ -358,47 +419,392 @@ document.addEventListener('DOMContentLoaded', function() {
     // Filter to show only edited items
     function filterEditedItems(showOnlyEdited) {
         const containers = document.querySelectorAll('.text-item-container');
+        
         containers.forEach(container => {
+            const isEdited = container.getAttribute('data-edited') === 'true';
+            
             if (showOnlyEdited) {
-                container.style.display = container.dataset.edited === 'true' ? '' : 'none';
+                container.style.display = isEdited ? '' : 'none';
             } else {
                 container.style.display = '';
             }
         });
     }
-
+    
     // Handle save button
-    saveBtn.addEventListener('click', function() {
-        if (!ocrData) {
-            alert('No data to save');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            if (!ocrData) {
+                alert('No OCR data to save');
+                return;
+            }
+            
+            // Get the document name from input field
+            const documentNameInput = document.getElementById('documentName');
+            const documentName = documentNameInput.value.trim();
+            
+            // Validate document name
+            if (!documentName) {
+                saveResult.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Please enter a document name.
+                    </div>
+                `;
+                documentNameInput.focus();
+                return;
+            }
+            
+            // Check document name length and pattern
+            const namePattern = /^[A-Za-z0-9 _\-\(\)\.]{3,50}$/;
+            if (!namePattern.test(documentName)) {
+                saveResult.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Document name must be 3-50 characters and can include letters, numbers, spaces, hyphens, underscores, periods, and parentheses.
+                    </div>
+                `;
+                documentNameInput.focus();
+                documentNameInput.select();
+                return;
+            }
+            
+            // Show spinner
+            spinner.classList.remove('d-none');
+            saveResult.innerHTML = '';
+            
+            // Send save request with document name
+            fetch('/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    document_name: documentName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide spinner
+                spinner.classList.add('d-none');
+                
+                if (data.success) {
+                    saveResult.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> 
+                            Document saved successfully!
+                            <br>
+                            <small>Name: ${data.document_name}</small>
+                            <br>
+                            <small>Document ID: ${data.database_id}</small>
+                        </div>
+                    `;
+                    
+                    // Clear the document name input for the next save
+                    documentNameInput.value = '';
+                    
+                    // Keep the save button enabled in case they make more edits
+                } else {
+                    // Check if this is a duplicate name error
+                    if (data.error && data.error.includes('already exists')) {
+                        saveResult.innerHTML = `
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                ${data.error}
+                            </div>
+                        `;
+                        
+                        // Focus the input field to make it easier for the user to change it
+                        documentNameInput.focus();
+                        documentNameInput.select();
+                    } else {
+                        saveResult.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i> 
+                                Failed to save data: ${data.error || 'Unknown error'}
+                            </div>
+                        `;
+                    }
+                }
+            })
+            .catch(error => {
+                spinner.classList.add('d-none');
+                console.error('Error:', error);
+                saveResult.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Error saving data: ${error.message}
+                    </div>
+                `;
+            });
+        });
+    }
+    
+    // Document Viewer Functionality
+    if (viewDocumentsBtn) {
+        viewDocumentsBtn.addEventListener('click', function() {
+            loadDocumentsList();
+            documentsModal.show();
+        });
+    }
+    
+    // Load the list of saved documents
+    function loadDocumentsList() {
+        documentsList.innerHTML = '<p class="text-center"><i class="bi bi-hourglass-split"></i> Loading documents...</p>';
+        
+        fetch('/documents')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch documents');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error loading documents');
+                }
+                
+                if (!data.documents || data.documents.length === 0) {
+                    documentsList.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No documents have been saved yet.</div>';
+                    return;
+                }
+                
+                // Display documents list
+                let html = '<div class="list-group">';
+                
+                data.documents.forEach(doc => {
+                    const createdDate = new Date(doc.created_at);
+                    const formattedDate = createdDate.toLocaleString();
+                    
+                    html += `
+                        <div class="document-item" data-document-id="${doc.id}">
+                            <div class="d-flex justify-content-between">
+                                <h5>${doc.document_name || 'Unnamed Document'}</h5>
+                                <span class="document-text-count">${doc.text_items_count} text items</span>
+                            </div>
+                            <div class="document-date">Created: ${formattedDate}</div>
+                            <div class="document-filename">File: ${doc.filename}</div>
+                            <div class="actions">
+                                <button class="btn btn-sm btn-primary view-document" data-document-id="${doc.id}">
+                                    <i class="bi bi-eye"></i> View Details
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                documentsList.innerHTML = html;
+                
+                // Add event listeners to view buttons
+                document.querySelectorAll('.view-document').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const docId = this.getAttribute('data-document-id');
+                        loadDocumentDetails(docId);
+                    });
+                });
+                
+                // Make entire document item clickable
+                document.querySelectorAll('.document-item').forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        // But not if they clicked a button inside it
+                        if (!e.target.closest('button')) {
+                            const docId = this.getAttribute('data-document-id');
+                            loadDocumentDetails(docId);
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                documentsList.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Error loading documents: ${error.message}
+                    </div>
+                `;
+            });
+    }
+    
+    // Load document details
+    function loadDocumentDetails(documentId) {
+        currentDocumentId = documentId;
+        
+        // Close the documents list modal
+        documentsModal.hide();
+        
+        // Show document details modal with loading state
+        documentInfo.innerHTML = '<p class="text-center"><i class="bi bi-hourglass-split"></i> Loading document info...</p>';
+        documentImage.innerHTML = '<p class="text-center"><i class="bi bi-hourglass-split"></i> Loading image...</p>';
+        documentTextItems.innerHTML = '<p class="text-center"><i class="bi bi-hourglass-split"></i> Loading text items...</p>';
+        
+        documentDetailsModal.show();
+        
+        // Fetch document details
+        fetch(`/documents/${documentId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch document details');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error loading document details');
+                }
+                
+                displayDocumentInfo(data.document);
+                displayDocumentTextItems(data.text_items);
+                
+                // Try to load the image - this might require additional endpoint
+                if (data.document.image_path) {
+                    loadDocumentImage(data.document.image_path);
+                } else {
+                    documentImage.innerHTML = '<p class="text-center text-muted">No image available</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                documentInfo.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Error loading document details: ${error.message}
+                    </div>
+                `;
+                documentImage.innerHTML = '<p class="text-center text-muted">Failed to load image</p>';
+                documentTextItems.innerHTML = '<p class="text-center text-muted">Failed to load text items</p>';
+            });
+    }
+    
+    // Display document metadata
+    function displayDocumentInfo(document) {
+        const createdDate = new Date(document.created_at);
+        const formattedDate = createdDate.toLocaleString();
+        
+        let html = `
+            <div class="document-metadata">
+                <dl>
+                    <dt>Document Name</dt>
+                    <dd>${document.document_name || 'Unnamed Document'}</dd>
+                    
+                    <dt>Document ID</dt>
+                    <dd>${document.id}</dd>
+                    
+                    <dt>Filename</dt>
+                    <dd>${document.filename}</dd>
+                    
+                    <dt>Created At</dt>
+                    <dd>${formattedDate}</dd>
+                    
+                    <dt>Text Items</dt>
+                    <dd>${document.text_items_count}</dd>
+                </dl>
+            </div>
+        `;
+        
+        documentInfo.innerHTML = html;
+    }
+    
+    // Load and display the document's image 
+    function loadDocumentImage(imagePath) {
+        documentImage.innerHTML = '<p class="text-center"><i class="bi bi-hourglass-split"></i> Loading image...</p>';
+        
+        // Use our new endpoint to get the image
+        fetch(`/documents/${currentDocumentId}/image`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch image');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error loading image');
+                }
+                
+                // Display the image
+                documentImage.innerHTML = `
+                    <div class="img-container">
+                        <img src="data:image/jpeg;base64,${data.image_base64}" alt="Document Image" class="img-fluid">
+                        <div class="image-controls mt-2">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input toggle-fit" type="checkbox" id="toggleDocumentFit" checked>
+                                <label class="form-check-label" for="toggleDocumentFit">Fit to view</label>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-muted small">
+                            <i class="bi bi-info-circle"></i> Image path: ${data.image_path}
+                        </div>
+                    </div>
+                `;
+                
+                // Add toggle functionality
+                const toggleFit = document.getElementById('toggleDocumentFit');
+                if (toggleFit) {
+                    toggleFit.addEventListener('change', function() {
+                        const imgContainer = this.closest('.img-container');
+                        if (this.checked) {
+                            imgContainer.classList.remove('actual-size');
+                        } else {
+                            imgContainer.classList.add('actual-size');
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                documentImage.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Could not load image: ${error.message}
+                        <br>
+                        <small>Path: ${imagePath}</small>
+                    </div>
+                `;
+            });
+    }
+    
+    // Display document text items
+    function displayDocumentTextItems(textItems) {
+        if (!textItems || textItems.length === 0) {
+            documentTextItems.innerHTML = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> No text items found in this document.</div>';
             return;
         }
         
-        // Show spinner
-        spinner.classList.remove('d-none');
+        let html = `
+            <p class="mb-3">Total items: ${textItems.length}</p>
+            <div class="document-text-items">
+        `;
         
-        // Send save request
-        fetch('/save', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Hide spinner
-            spinner.classList.add('d-none');
-            
-            if (data.success) {
-                saveResult.innerHTML = `Successfully saved to: <strong>${data.path}</strong>`;
-                saveResult.className = 'success';
-            } else {
-                saveResult.innerHTML = `Error: ${data.error}`;
-                saveResult.className = 'error';
+        textItems.forEach(item => {
+            // Determine confidence level for styling
+            let confidenceClass = 'medium';
+            if (item.confidence >= 0.8) {
+                confidenceClass = 'high';
+            } else if (item.confidence < 0.5) {
+                confidenceClass = 'low';
             }
-        })
-        .catch(error => {
-            spinner.classList.add('d-none');
-            console.error('Error:', error);
-            saveResult.innerHTML = `Error: ${error.message}`;
-            saveResult.className = 'error';
+            
+            html += `
+                <div class="document-text-item ${item.is_handwritten ? 'handwritten' : ''}">
+                    <div class="item-text">${item.text || '<i>Empty text</i>'}</div>
+                    <div class="item-meta">
+                        <div>
+                            <strong>Type:</strong> ${item.is_handwritten ? 'Handwritten (Editable)' : 'Printed (Non-editable)'}
+                        </div>
+                        <div>
+                            <strong>Confidence:</strong> 
+                            <span class="confidence ${confidenceClass}">
+                                ${Math.round(item.confidence * 100)}%
+                            </span>
+                        </div>
+                        <div><strong>Edited:</strong> ${item.edited ? 'Yes' : 'No'}</div>
+                    </div>
+                </div>
+            `;
         });
-    });
+        
+        html += '</div>';
+        documentTextItems.innerHTML = html;
+    }
 }); 

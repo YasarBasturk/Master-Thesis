@@ -57,10 +57,24 @@
                 
                 <div class="card mt-3">
                     <div class="card-header bg-success text-white">
-                        <h3 class="card-title">Save Results</h3>
+                        <h3 class="card-title">Save & View Results</h3>
                     </div>
                     <div class="card-body">
-                        <button id="saveBtn" class="btn btn-success" disabled>Save Corrected JSON</button>
+                        <div class="mb-3">
+                            <label for="documentName" class="form-label">Document Name <span class="text-danger">*</span></label>
+                            <input type="text" 
+                                  class="form-control" 
+                                  id="documentName" 
+                                  placeholder="Enter a unique name for this document" 
+                                  autocomplete="off"
+                                  pattern="^[A-Za-z0-9 _\-\(\)\.]{3,50}$"
+                                  title="Document name must be 3-50 characters and can include letters, numbers, spaces, hyphens, underscores, periods, and parentheses"
+                                  maxlength="50"
+                                  required>
+                            <div class="form-text">Give your document a meaningful name to easily identify it in the saved documents list (must be unique)</div>
+                        </div>
+                        <button id="saveBtn" class="btn btn-success mb-3" disabled>Save Document</button>
+                        <button id="viewDocumentsBtn" class="btn btn-info mb-3">View Saved Documents</button>
                         <div id="saveResult" class="mt-2"></div>
                     </div>
                 </div>
@@ -120,6 +134,75 @@
                             <p class="text-muted">Upload an image to view and edit detected text</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Viewer Modal -->
+    <div class="modal fade" id="documentsModal" tabindex="-1" aria-labelledby="documentsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="documentsModalLabel">Saved Documents</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="documentsList">
+                        <p class="text-center text-muted">Loading documents...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Document Details Modal -->
+    <div class="modal fade" id="documentDetailsModal" tabindex="-1" aria-labelledby="documentDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="documentDetailsModalLabel">Document Details</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="documentDetails">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="card-title">Document Info</h5>
+                                    </div>
+                                    <div class="card-body" id="documentInfo">
+                                        <p class="text-center text-muted">Loading document info...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <h5 class="card-title">Document Image</h5>
+                                    </div>
+                                    <div class="card-body text-center" id="documentImage">
+                                        <p class="text-muted">Loading image...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="card-title">Text Items</h5>
+                            </div>
+                            <div class="card-body" id="documentTextItems">
+                                <p class="text-center text-muted">Loading text items...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
